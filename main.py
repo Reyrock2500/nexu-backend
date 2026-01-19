@@ -34,12 +34,34 @@ async def brands():
         JOIN models m on m.brand_id = b.id
         GROUP BY b.id, b.name;
                    """)
-        models = cursor.fetchall()
-        for model in models:
-            brand_id, brand_name, average_price = model
+        brands = cursor.fetchall()
+        for brand in brands:
+            brand_id, brand_name, average_price = brand
             brands_json.append( {
             "id": brand_id,
             "name": brand_name,
             "average_price": average_price
             })
     return brands_json
+
+
+@app.get("/brands/{id}/models")
+def list_brand_models(id: int):
+    models_per_brand = []
+    with sqlite3.connect(database_file) as connect:
+        cursor = connect.cursor()
+        cursor.execute("""
+        SELECT m.id, m.name, m.average_price FROM models m
+        JOIN brands b ON m.brand_id = b.id
+        WHERE ? = b.id
+        GROUP BY m.id;
+      """, (id,))
+        models_p_brand = cursor.fetchall()
+        for model in models_p_brand:
+            model_id, model_name, average_price = model
+            models_per_brand.append( {
+            "id": model_id,
+            "name": model_name,
+            "average_price": average_price
+            })
+    return models_per_brand
