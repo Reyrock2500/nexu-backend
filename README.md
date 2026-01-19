@@ -31,7 +31,7 @@ If you have the frontend code on hand, you can test it directly from there. If n
 - **Python 3.12**: Main programming language. Python's syntax is very straightforward, it also comes with good enough performance, which suits such a straightforward project.
 - **FastAPI**: It is defined as a high-performance web framework for building APIs. It is also very simple to use, includes default testing/docs and is more than enought for this project's purpose.
 - **SQLite**: Lightweight disk-based database for data persistence. SQL was used because that language and structure makes it very easy to manipulate and organize the provided data, as opposed to just working with the JSON file.
-- **Docker**: Containerization platform, it allows anyone with it to build and run container images. For this project, reduces the amount of actions needed any user would need to run it (in this case, evaluators I guess).
+- **Docker**: Containerization platform, it allows anyone with it to build and run container images. For this project, it reduces the amount of actions needed by any user to run it (in this case, evaluators).
 - **Pydantic**: Data validation and settings management. Mainly used for POST/PUT, makes it so the user has to comply with the desired structure of the inputs.
 - **Pytest**: This is a framework for unit and integration tests.
 
