@@ -16,8 +16,8 @@ async def test():
     return {"mensaje": "Hello World :DDD"}
 
 
-@app.get("/models")
-async def models():
+@app.get("/models_qty")
+async def models_qty():
     with sqlite3.connect(database_file) as connect:
         cursor = connect.cursor()
         cursor.execute("SELECT COUNT(*) FROM models")
@@ -136,3 +136,37 @@ async def update_model(id: int, model: ModelUpdate):
             return {"id": id, "average_price": model.average_price}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/models")
+async def get_models(greater: Optional[int] = None, lower: Optional[int] = None):
+    sql = "SELECT id, name, average_price FROM models"
+    filters = []
+    args = []
+    models = []
+
+    # in can list all models if greater and lower not in the "query"
+    if greater is not None:
+        filters.append("average_price > ?")
+        args.append(greater)
+    
+    if lower is not None:
+        filters.append("average_price < ?")
+        args.append(lower)
+
+    if filters: # hardest part
+        sql += " WHERE " + " AND ".join(filters) 
+    sql += "ORDER BY average_price"
+        
+    with sqlite3.connect(database_file) as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql, args)
+        for row in cursor.fetchall():
+            model_id, model_name, average_price = row
+            models.append({
+            "id": model_id,
+            "name": model_name,
+            "average_price": average_price
+            })
+        data = models
+        return data
