@@ -1,5 +1,6 @@
+from typing import Optional
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from scripts import sqlite_populate
 import os
 import sqlite3
@@ -80,5 +81,37 @@ async def create_brand(brand: Brand):
             return {"id": cursor.lastrowid, "name": brand.name}
     except sqlite3.IntegrityError: #unique does the job
         raise HTTPException(status_code=400, detail="Brand already exists. Try again.")
-    except Exception as e: # pydantic rejection
+    except Exception as e: # other tragedy
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class Model(BaseModel):
+    name: str
+    average_price: Optional[int] = Field(None, gt=100000)
+
+
+@app.post("/brands/{id}/models")
+async def create_model(id: int, model: Model):
+    with sqlite3.connect(database_file) as connection:
+        cursor = connection.cursor()
+        
+        cursor.execute("SELECT id FROM brands WHERE id = ?", (id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Brand not found. Try again :D")
+            
+        cursor.execute("SELECT id FROM models WHERE brand_id = ? AND name = ?", (id, model.name))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Model name already exists for this brand. Try another one")
+
+        try:
+            cursor.execute("INSERT INTO models (name, average_price, brand_id) VALUES (?, ?, ?)", 
+                           (model.name, model.average_price, id))
+            connection.commit()
+            return {
+                "id": cursor.lastrowid, 
+                "name": model.name, 
+                "average_price": model.average_price, 
+                "brand_id": id
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
