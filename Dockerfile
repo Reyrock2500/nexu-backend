@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+# pip freeze before !
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# if free, which normally should
+EXPOSE 8000
+
+CMD ["uvicorn", "starter:app", "--host", "0.0.0.0", "--port", "8000"]
