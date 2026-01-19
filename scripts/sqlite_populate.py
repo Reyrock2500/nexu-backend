@@ -7,17 +7,17 @@ database_file = os.getenv("DB_PATH")
 json_models = os.getenv("JSON_PATH")
 
 def create_db():
-    print("hello")
     try:
         with sqlite3.connect(database_file) as connection:
             cursor = connection.cursor()
+            cursor.execute("DROP TABLE IF EXISTS brands;")
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS brands (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL
             ); 
             ''')
-
+            cursor.execute("DROP TABLE IF EXISTS models;")
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS models (
                 id INTEGER PRIMARY KEY,
@@ -51,15 +51,6 @@ def create_db():
                 cursor.execute("""INSERT INTO models(id,name,average_price,brand_id)
                             VALUES (?,?,?,?)""", (model['id'], model['name'], model['average_price'], brand_id))
             connection.commit()
-
-            cursor.execute("SELECT * FROM models")
-            models = cursor.fetchall()
-            for model in models:
-                print(model)
-            cursor.execute("SELECT * FROM brands")
-            models = cursor.fetchall()
-            for model in models:
-                print(model)
     except Exception as e:
         print (f"Somehow the DB population died :(\n{e}")
         exit(1) # No info to continue whatsoever
