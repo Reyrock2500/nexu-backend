@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 ENV DB_PATH=/app/data/models.db
+ENV JSON_PATH=/app/data/models.json
 
 
 # if free, which normally should
