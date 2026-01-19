@@ -7,6 +7,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+ENV DB_PATH=/app/data/models.db
+
+
 # if free, which normally should
 EXPOSE 8000
 
