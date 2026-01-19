@@ -115,3 +115,24 @@ async def create_model(id: int, model: Model):
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
+class ModelUpdate(BaseModel):
+    average_price: int = Field(..., gt=100000)
+
+
+@app.put("/models/{id}")
+async def update_model(id: int, model: ModelUpdate):
+    with sqlite3.connect(database_file) as connection:
+        cursor = connection.cursor()
+        
+        cursor.execute("SELECT id FROM models WHERE id = ?", (id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Model not found. Try again.")
+
+        try:
+            cursor.execute("UPDATE models SET average_price = ? WHERE id = ?", (model.average_price, id))
+            connection.commit()
+            return {"id": id, "average_price": model.average_price}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
