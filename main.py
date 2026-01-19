@@ -1,10 +1,10 @@
+import os
+import sqlite3
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from scripts import sqlite_populate
-import os
-import sqlite3
-import json
+
 
 app = FastAPI()
 sqlite_populate.create_db()
@@ -13,21 +13,30 @@ database_file = os.getenv("DB_PATH")
 
 @app.get("/")
 async def test():
+    """
+    Health check endpoint.
+    """
     return {"mensaje": "Hello World :DDD"}
 
 
 @app.get("/models_qty")
 async def models_qty():
+    """
+    Returns the total number of models in the database.
+    """
     with sqlite3.connect(database_file) as connect:
         cursor = connect.cursor()
         cursor.execute("SELECT COUNT(*) FROM models")
         models = cursor.fetchone()
-        
+
     print("Here models")
     return {"total": models}
 
 @app.get("/brands")
 async def brands():
+    """
+    Retrieves all brands with their average model price.
+    """
     brands_json = []
     with sqlite3.connect(database_file) as connect:
         cursor = connect.cursor()
@@ -46,9 +55,12 @@ async def brands():
             })
     return brands_json
 
-
+    
 @app.get("/brands/{id}/models")
 def list_brand_models(id: int):
+    """
+    Lists all models for a specific brand.
+    """
     models_per_brand = []
     with sqlite3.connect(database_file) as connect:
         cursor = connect.cursor()
@@ -73,39 +85,43 @@ class Brand(BaseModel):
 
 @app.post("/brands")
 async def create_brand(brand: Brand):
+    """
+    Creates a new brand.
+    """
     try:
         with sqlite3.connect(database_file) as connection:
             cursor = connection.cursor()
             cursor.execute("INSERT INTO brands (name) VALUES (?)", (brand.name,))
             connection.commit()
             return {"id": cursor.lastrowid, "name": brand.name}
-    except sqlite3.IntegrityError: #unique does the job
-        raise HTTPException(status_code=400, detail="Brand already exists. Try again.")
+    except sqlite3.IntegrityError as e: #unique does the job
+        raise HTTPException(status_code=400, detail="Brand already exists. Try again.") from e
     except Exception as e: # other tragedy
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 class Model(BaseModel):
     name: str
     average_price: Optional[int] = Field(None, gt=100000)
-
-
+    
 @app.post("/brands/{id}/models")
 async def create_model(id: int, model: Model):
+    """
+    Creates a new model associated with a brand.
+    """
     with sqlite3.connect(database_file) as connection:
         cursor = connection.cursor()
-        
         cursor.execute("SELECT id FROM brands WHERE id = ?", (id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Brand not found. Try again :D")
             
         cursor.execute("SELECT id FROM models WHERE brand_id = ? AND name = ?", (id, model.name))
         if cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Model name already exists for this brand. Try another one")
+            raise HTTPException(status_code=400, detail="Model name already exists for this brand.")
 
         try:
             cursor.execute("INSERT INTO models (name, average_price, brand_id) VALUES (?, ?, ?)", 
-                           (model.name, model.average_price, id))
+            (model.name, model.average_price, id))
             connection.commit()
             return {
                 "id": cursor.lastrowid, 
@@ -114,18 +130,19 @@ async def create_model(id: int, model: Model):
                 "brand_id": id
             }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 class ModelUpdate(BaseModel):
     average_price: int = Field(..., gt=100000)
-
-
+    
 @app.put("/models/{id}")
 async def update_model(id: int, model: ModelUpdate):
+    """
+    Updates the average price of a model.
+    """
     with sqlite3.connect(database_file) as connection:
         cursor = connection.cursor()
-        
         cursor.execute("SELECT id FROM models WHERE id = ?", (id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Model not found. Try again.")
@@ -134,12 +151,16 @@ async def update_model(id: int, model: ModelUpdate):
             cursor.execute("UPDATE models SET average_price = ? WHERE id = ?", (model.average_price, id))
             connection.commit()
             return {"id": id, "average_price": model.average_price}
+
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/models")
 async def get_models(greater: Optional[int] = None, lower: Optional[int] = None):
+    """
+    Retrieves models, optionally filtered by average price range.
+    """
     sql = "SELECT id, name, average_price FROM models"
     filters = []
     args = []
